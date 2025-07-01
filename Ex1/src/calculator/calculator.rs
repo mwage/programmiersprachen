@@ -1,7 +1,6 @@
 use std::collections::{HashMap, VecDeque};
-use super::Operand;
+use super::{Operand, EPSILON};
 
-const EPSILON: f64 = 1e-10;  // Floating point precision (f64 has precision of ~15-17 decimal digits, so this is easily within that threshold) 
 
 pub struct Calculator {
     commands: VecDeque<char>, // A stream of characters regarded as commands to be executed in sequential order.
@@ -40,14 +39,6 @@ impl Calculator {
         self.execute_commands();
     }
 
-    pub fn add_input(&mut self, input: &str) {
-        self.input.push_str(input);
-    }
-
-    pub fn get_output(&mut self) -> &str {
-        &self.output
-    }
-
     /// The first character in the command stream, we call it command character,
     /// gets executed. On execution this character is removed from
     /// the command stream and the next character becomes executable.
@@ -58,8 +49,8 @@ impl Calculator {
             match self.operation_mode {
                 0 => self.execution(next_command),
                 -1 => self.integer_construction(next_command),
-                m if m < -1 => self.decimal_place_construction(m, next_command),
-                m => self.string_construction(m, next_command)
+                m if m < -1 => self.decimal_place_construction(next_command),
+                _ => self.string_construction(next_command)
             }
         }
     }
@@ -86,7 +77,7 @@ impl Calculator {
         }
     }
 
-    fn decimal_place_construction(&mut self, m: i8, next_command: char) {
+    fn decimal_place_construction(&mut self, next_command: char) {
         assert!(!self.data.is_empty()); // Data stack cannot be empty in decimal place construction mode
         let current = if let Operand::Float(f) = self.data.last().unwrap() {
             *f
@@ -110,7 +101,7 @@ impl Calculator {
         }
     }
 
-    fn string_construction(&mut self, m: i8, next_command: char) {
+    fn string_construction(&mut self, next_command: char) {
         assert!(!self.data.is_empty()); // Data stack cannot be empty in string construction mode
         assert!(matches!(self.data.last().unwrap(), Operand::String(_)));   // Current data must be string in string construction mode
 
