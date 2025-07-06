@@ -240,8 +240,40 @@ impl Calculator {
                     _ => return,
                 }
             },
-            // TODO: @, \, #, ', "
-            _ => unimplemented!() 
+            '@' => {    // Apply immediately
+                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if !matches!(self.data.last().unwrap(), Operand::String(_)) {
+                    return;
+                }
+                
+                if let Operand::String(s) = self.data.pop().unwrap() {
+                    for c in s.chars().rev() {
+                        self.commands.push_front(c);    // TODO: Check if this is correct, do I need to consider ()? reverse correct?
+                    }
+                }
+            },
+            '\\' => {    // Apply later
+                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if !matches!(self.data.last().unwrap(), Operand::String(_)) {
+                    return;
+                }
+                
+                if let Operand::String(s) = self.data.pop().unwrap() {
+                    for c in s.chars() {
+                        self.commands.push_back(c);    // TODO: Check if this is correct, do I need to consider ()? reverse correct?
+                    }
+                }
+            },
+            '#' => {
+                self.data.push(Operand::Integer(self.commands.len() as i64));
+            },
+            '\'' => {   // Read input
+                unimplemented!()
+            },
+            '"' => {   // Write output
+                unimplemented!()
+            },
+            _ => return
         }
     }
 
