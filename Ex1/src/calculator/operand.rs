@@ -85,8 +85,15 @@ impl Add for Operand {
     type Output = Self;
     
     fn add(self, rhs: Self) -> Self {
-        unimplemented!();
-        todo!()
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 + r0),
+            (Self::Float(l0), Self::Float(r0)) => Self::Float(l0 + r0),
+            (Self::Float(l0), Self::Integer(r0)) => Self::Float(l0 + r0 as f64),
+            (Self::Integer(l0), Self::Float(r0)) => Self::Float(l0 as f64 + r0),
+            (Self::String(l0), Self::String(r0)) => Self::String(l0 + &r0),
+            (Self::String(l0), x) => Self::String(l0 + &x.to_string()),
+            (x, Self::String(r0)) => Self::String(x.to_string() + &r0)
+        }
     }
 }
 
@@ -95,7 +102,27 @@ impl Sub for Operand {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 - r0),
+            (Self::Float(l0), Self::Float(r0)) => Self::Float(l0 - r0),
+            (Self::Float(l0), Self::Integer(r0)) => Self::Float(l0 - r0 as f64),
+            (Self::Integer(l0), Self::Float(r0)) => Self::Float(l0 as f64 - r0),
+            (Self::String(l0), Self::Integer(r0)) => {  // Remove from right
+                if r0 < 0 || r0 >= l0.len() as i64 {
+                    return Self::String(String::new())  // Int negative or removing all chars (and more)
+                }
+
+                Self::String(l0.chars().take(l0.len() - r0 as usize).collect::<String>()) // Remove last l0 chars
+            },
+            (Self::Integer(l0), Self::String(r0)) => {  // Remove from left
+                if l0 < 0 || l0 >= r0.len() as i64 {
+                    return Self::String(String::new())  // Int negative or removing all chars (and more)
+                }
+
+                Self::String(r0.chars().skip(l0 as usize).collect::<String>())  // Remove first l0 chars
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
 
@@ -103,7 +130,28 @@ impl Mul for Operand {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 * r0),
+            (Self::Float(l0), Self::Float(r0)) => Self::Float(l0 * r0),
+            (Self::Float(l0), Self::Integer(r0)) => Self::Float(l0 * r0 as f64),
+            (Self::Integer(l0), Self::Float(r0)) => Self::Float(l0 as f64 * r0),
+            (Self::String(mut l0), Self::Integer(r0)) => {  // Add ASCII to right
+                if r0 < 0 || r0 > 128 as i64 {
+                    return Self::String(String::new())  // Int not ASCII
+                }
+                l0.push(r0 as u8 as char);
+                Self::String(l0) // Remove last l0 chars
+            },
+            (Self::Integer(l0), Self::String(mut r0)) => {  // Add ASCII to left
+                if l0 < 0 || l0 > 128 as i64 {
+                    return Self::String(String::new())  // Int not ASCII
+                }
+
+                r0.push(l0 as u8 as char);
+                Self::String(r0)  // Remove first l0 chars
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
 
@@ -111,7 +159,19 @@ impl Div for Operand {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 / r0),
+            (Self::Float(l0), Self::Float(r0)) => Self::Float(l0 / r0),
+            (Self::Float(l0), Self::Integer(r0)) => Self::Float(l0 / r0 as f64),
+            (Self::Integer(l0), Self::Float(r0)) => Self::Float(l0 as f64 / r0),
+            (Self::String(l0), Self::String(r0)) => {  // Returns first position where the second string occurs in the first string
+                match l0.find(&r0) {
+                    Some(i) => Self::Integer(i as i64),
+                    None => Self::Integer(-1)
+                }
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
 
@@ -119,7 +179,16 @@ impl Rem for Operand {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 % r0),
+            (Self::String(l0), Self::Integer(r0)) => {  // Get ASCII at int position
+                match l0.chars().nth(r0 as usize) {
+                    Some(c) => Self::Integer(c as u8 as i64),   // Index found
+                    None => Self::String(String::new()) // Index out of range
+                }
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
 
