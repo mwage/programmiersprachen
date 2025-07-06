@@ -196,7 +196,12 @@ impl BitAnd for Operand {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => {
+                Self::Integer(if l0 == 0 || r0 == 0 { 0 } else { 1 })
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
 
@@ -204,6 +209,11 @@ impl BitOr for Operand {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        unimplemented!();
+        match (self, rhs) {
+            (Self::Integer(l0), Self::Integer(r0)) => {
+                Self::Integer(if l0 == 0 && r0 == 0 { 0 } else { 1 })
+            },
+            _ => Self::String(String::new())
+        }
     }
 }
