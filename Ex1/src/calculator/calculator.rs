@@ -416,10 +416,14 @@ mod functinoality_tests {
     #[test]
     fn test_division() {
         assert_eq!("6", execute_input("42 7/")); // Ints
+        assert_eq!("", execute_input("42 0/")); // Ints
         assert_eq!("0", execute_input("2 4/")); // Ints
         assert_eq!("7.5", execute_input("42.0 5.6/"));   // Floats
+        assert_eq!("", execute_input("42.0 0.0/"));   // Floats
         assert_eq!("2.0", execute_input("3 1.5/"));     // Int + Float
+        assert_eq!("", execute_input("3 0.0/"));     // Int + Float
         assert_eq!("1.5", execute_input("4.5 3/"));     // Int + Float
+        assert_eq!("", execute_input("4.5 0/"));     // Int + Float
         assert_eq!("-1", execute_input("(Hello) (World!)/")); // Strings
         assert_eq!("6", execute_input("(Hello World) (World)/"));  // Strings
         assert_eq!("", execute_input("(Hello) 1/"));  // String + Int

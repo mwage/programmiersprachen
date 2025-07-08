@@ -168,10 +168,18 @@ impl Div for Operand {
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 / r0),
-            (Self::Float(l0), Self::Float(r0)) => Self::Float(l0 / r0),
-            (Self::Float(l0), Self::Integer(r0)) => Self::Float(l0 / r0 as f64),
-            (Self::Integer(l0), Self::Float(r0)) => Self::Float(l0 as f64 / r0),
+            (Self::Integer(l0), Self::Integer(r0)) => {
+                if r0 == 0 { Self::String(String::new()) } else { Self::Integer(l0 / r0) }
+            },
+            (Self::Float(l0), Self::Float(r0)) => {
+                if r0.abs() < EPSILON { Self::String(String::new()) } else { Self::Float(l0 / r0) }
+            },
+            (Self::Float(l0), Self::Integer(r0)) => {
+                if r0 == 0 { Self::String(String::new()) } else { Self::Float(l0 / r0 as f64) } 
+            },
+            (Self::Integer(l0), Self::Float(r0)) => {
+                if r0.abs() < EPSILON { Self::String(String::new()) } else { Self::Float(l0 as f64 / r0) }
+            },
             (Self::String(l0), Self::String(r0)) => {  // Returns first position where the second string occurs in the first string
                 match l0.find(&r0) {
                     Some(i) => Self::Integer(i as i64),
