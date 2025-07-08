@@ -1,5 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use super::{Operand, EPSILON};
+use std::io::stdin;
 
 
 pub struct Calculator {
@@ -7,8 +8,6 @@ pub struct Calculator {
     operation_mode: i8, // An integer used in controlling the interpretation of commands
     data: Vec<Operand>, // This is the stack holding integers, floating-point numbers and strings when evaluating expressions in post-fix notation.
     registers: HashMap<char, Operand>, // A set of 52 read-only registers named by letters A to Z and a to z, each holding a single integer, floating-point number or string   // NOTE: These are constants (code that exists when switching on the calculator)
-    input: String, // Input stream: A stream of characters typed in using the keyboard.    // NOTE: This is unparsed input (FIFO queue or just string?)
-    output: String// Output stream: A stream of characters displayed on the screen.
 }
 
 impl Calculator {
@@ -25,8 +24,6 @@ impl Calculator {
             operation_mode: 0,
             data: Vec::new(),
             registers,
-            input: String::new(),
-            output: String::new()
         }
     }
 
@@ -56,20 +53,24 @@ impl Calculator {
     }
 
     fn integer_construction(&mut self, next_command: char) {
+        eprintln!("Enter integer construction");
         assert!(!self.data.is_empty()); // Data stack cannot be empty in integer construction mode
+        eprintln!("Data: {:?}", self.data.last().unwrap());
         let current = if let Operand::Integer(i) = self.data.last().unwrap() {
             *i
         } else {
             panic!("Current data must be integer in integer construction mode")
         };
+        eprintln!("Current: {}", current);
 
         match next_command {
             '.' => {    // Transform int to float
                 *self.data.last_mut().unwrap() = Operand::Float(current as f64);
+                self.operation_mode = -2;
             },      
             x if x.is_digit(10) => {    // Append digit to current int
                 *self.data.last_mut().unwrap() = Operand::Integer(10 * current + i64::from(x.to_digit(10).unwrap()));
-            },    
+            },
             _ => {      // Execute command in execution mode 
                 self.operation_mode = 0;
                 self.execution(next_command);
@@ -78,6 +79,7 @@ impl Calculator {
     }
 
     fn decimal_place_construction(&mut self, next_command: char) {
+        eprintln!("Enter decimal construction");
         assert!(!self.data.is_empty()); // Data stack cannot be empty in decimal place construction mode
         let current = if let Operand::Float(f) = self.data.last().unwrap() {
             *f
@@ -102,6 +104,7 @@ impl Calculator {
     }
 
     fn string_construction(&mut self, next_command: char) {
+        eprintln!("Enter string construction");
         assert!(!self.data.is_empty()); // Data stack cannot be empty in string construction mode
         assert!(matches!(self.data.last().unwrap(), Operand::String(_)));   // Current data must be string in string construction mode
 
@@ -129,13 +132,14 @@ impl Calculator {
     }
 
     fn execution(&mut self, next_command: char) {
+        eprintln!("Enter execution mode");
         match next_command {
             '.' => {    // Go to decimal place construction mode
                 self.data.push(Operand::Float(0.0));
                 self.operation_mode = -2;
             },      
             x if x.is_digit(10) => {    // Go to integer construction mode
-                self.data.push(Operand::Float(0.0));
+                self.data.push(Operand::Integer(x.to_digit(10).unwrap() as i64));
                 self.operation_mode = -1;
             },
             '(' => {    // Go to string construction mode
@@ -268,10 +272,23 @@ impl Calculator {
                 self.data.push(Operand::Integer(self.commands.len() as i64));
             },
             '\'' => {   // Read input
-                unimplemented!()
+                // TODO: Ignore ASCII
+                let mut input = String::new();  // Input stream
+                stdin().read_line(&mut input).expect("Failed to read line.");  // TODO: Replace with proper error handling
+                input = String::from(input.trim());
+                if let Ok(i) = input.parse::<i64>() {  // Try parse to int
+                    self.data.push(Operand::Integer(i));
+                } else if let Ok(f) = input.parse::<f64>() {  // Try parse to float
+                    self.data.push(Operand::Float(f));
+                } else {
+                    // Otherwise push string
+                    self.data.push(Operand::String(input.clone()))
+                }
             },
             '"' => {   // Write output
-                unimplemented!()
+                if let Some(x) = self.data.pop() {
+                    print!("{}", x.to_string());    // Output
+                }
             },
             _ => return
         }
@@ -283,56 +300,99 @@ impl Calculator {
 mod test {
     use super::*;
 
-    // Basic functionality tests
-
-    fn new_calculator() -> Calculator {
+    // Helper function for testing the internal workings of the calculator
+    fn execute_input(input: &str) -> String {
         let mut calculator = Calculator::new();
-        calculator.turn_on();
-        
-        calculator
-    }
-
-    fn evaluate(calculator: &mut Calculator, input: &str) -> String {
-        calculator.add_input(input);
+        calculator.commands.extend(input.chars());
         calculator.execute_commands();
-
-        calculator.get_output().to_string()
+        calculator.data.pop().unwrap().to_string()
     }
 
+    #[test]
+    fn test_construction() {
+        // Integers
+        assert_eq!("1", execute_input("1"));
+        assert_eq!("2", execute_input("1 2"));
+        assert_eq!("-1", execute_input("1~"));  // Negative numbers
+        // Floats
+        assert_eq!("0.1", execute_input("0.1"));
+        assert_eq!("0.0", execute_input("0.0"));
+        assert_eq!("0.1", execute_input("0.10"));   // Avoid unnecessary 0s
+        assert_eq!("0.103", execute_input("0.103"));
+        assert_eq!("0.0", execute_input("0.0000000000000001")); // Remove redundancy smaller than our precision
+        assert_eq!("-1.3", execute_input("1.3~"));  // Negative numbers
+        // Strings
+        assert_eq!("Hello World!", execute_input("(Hello World!)"));
+        assert_eq!("Un(Bal(anced()", execute_input("(Un(Bal(anced()"));
+        assert_eq!("Three!", execute_input("3 (Three!)"));  // Int + String
+    }
+
+    #[test]
+    fn test_equality() {
+        // Ints
+        assert_eq!("1", execute_input("3 3="));
+        assert_eq!("0", execute_input("3 2="));
+        // Floats
+        assert_eq!("1", execute_input("3.0 3.0=")); 
+        assert_eq!("0", execute_input("3.0 3.00005=")); 
+        assert_eq!("1", execute_input("3.0 3.000000000000000000001="));
+        // Float + Int
+        assert_eq!("1", execute_input("3 3.0="));
+        assert_eq!("0", execute_input("3 3.000002="));
+        // Strings
+        assert_eq!("1", execute_input("(Hello) (Hello)="));
+        assert_eq!("0", execute_input("(Hello) (Hello World!)="));
+        // Strings + other
+        assert_eq!("0", execute_input("(1) 1="));
+        assert_eq!("0", execute_input("(0.0) 0.0="));
+    }
+    
+    
+    #[test]
+    fn test_greater() {
+        // Ints
+        assert_eq!("1", execute_input("3 2>"));
+        assert_eq!("0", execute_input("3 4>"));
+        // Floats
+        assert_eq!("1", execute_input("3.1 3.0>")); 
+        assert_eq!("0", execute_input("3.0 3.00005>")); 
+        assert_eq!("0", execute_input("3.0 3.000000000000000000001>"));
+        // Float + Int
+        assert_eq!("1", execute_input("3 2.0>"));
+        assert_eq!("0", execute_input("3 3.000002>"));
+        // Strings
+        assert_eq!("0", execute_input("(Hello) (Hello)<"));
+        assert_eq!("1", execute_input("(Hello) (Hello World!)<"));
+        assert_eq!("1", execute_input("(Hello) (World)<"));
+        // Strings + other
+        assert_eq!("1", execute_input("(1) 1>"));
+        assert_eq!("1", execute_input("(0.0) 0.0>"));
+    }
+    
     #[test]
     fn test_addition() {
-        let mut calculator = new_calculator();
-        calculator.turn_on();
-        assert_eq!("17.4", evaluate(&mut calculator, "5.1 12.3+"));
+        assert_eq!("5", execute_input("3 2+")); // Ints
+        assert_eq!("7.1", execute_input("3.3 3.8+"));   // Floats
+        assert_eq!("6.05", execute_input("3 3.05+"));     // Int + Float
+        assert_eq!("6.05", execute_input("3.05 3+"));     // Int + Float
+        assert_eq!("Hello World!", execute_input("(Hello ) (World!)+")); // Strings
+        assert_eq!("Three: 3", execute_input("(Three: ) 3+"));  // String + Int
+        assert_eq!("3: Three", execute_input("3 (: Three)+"));  // String + Int
+        assert_eq!("Threes: 3.3", execute_input("(Threes: ) 3.3+"));  // String + Float
+        assert_eq!("Three: 3.0", execute_input("(Three: ) 3.000000000000000000001+"));  // String + Float
+        assert_eq!("3.3: Threes", execute_input("3.3 (: Threes)+"));  // String + Float
     }
 
     #[test]
-    fn test_basic_operations() {
-        let mut calculator = new_calculator();
-        assert_eq!("1".to_string(), evaluate(&mut calculator, "15 2 3 4+*-"));
-    }
-
-    #[test]
-    fn test_string_eval() {
-        let mut calculator = new_calculator();
-        assert_eq!("10".to_string(), evaluate(&mut calculator, "4 3(2*)@+"));
-    }
-
-    #[test]
-    fn test_div() {
-        let mut calculator = new_calculator();
-        assert_eq!("2".to_string(), evaluate(&mut calculator, "4 2/"));
-    }
-
-    #[test]
-    fn test_mod() {
-        let mut calculator = new_calculator();
-        assert_eq!("1".to_string(), evaluate(&mut calculator, "4 3%"));
-    }
-
-    #[test]
-    fn test_conditionals() {
-        let mut calculator = new_calculator();
-        assert_eq!("8".to_string(), evaluate(&mut calculator, "(4!4$_1+$@)"));
+    fn test_multiplication() {
+        assert_eq!("42", execute_input("7 6*")); // Ints
+        assert_eq!("42.0", execute_input("7.5 5.6*"));   // Floats
+        assert_eq!("15.9", execute_input("3 5.3*"));     // Int + Float
+        assert_eq!("15.9", execute_input("5.3 3*"));     // Int + Float
+        assert_eq!("", execute_input("(Hello ) (World!)*")); // Strings
+        assert_eq!("Hello World!", execute_input("(Hello World) 33*"));  // String + Int
+        assert_eq!("Hi", execute_input("72 (i)*"));  // String + Int
+        assert_eq!("", execute_input("(Threes: ) 3.3*"));  // String + Float
+        assert_eq!("", execute_input("3.3 (: Threes)*"));  // String + Float
     }
 }

@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::*};
 use super::EPSILON;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Operand {
     Integer(i64),
     Float(f64),
@@ -12,7 +12,15 @@ impl ToString for Operand {
     fn to_string(&self) -> String {
         match self {
             Operand::Integer(i) => i.to_string(),
-            Operand::Float(f) => f.to_string(), // TODO: Remove redundant decimals
+            Operand::Float(f) => {
+                let precision: f64 = 1.0/EPSILON;
+                let rounded = (f * precision).round() / precision;
+                if rounded.fract().abs() < EPSILON {
+                    return format!("{:.1}", rounded);
+                }
+
+                rounded.to_string()
+            }
             Operand::String(s) => s.clone()
         }
     }
@@ -147,7 +155,7 @@ impl Mul for Operand {
                     return Self::String(String::new())  // Int not ASCII
                 }
 
-                r0.push(l0 as u8 as char);
+                r0.insert(0, l0 as u8 as char);
                 Self::String(r0)  // Remove first l0 chars
             },
             _ => Self::String(String::new())
