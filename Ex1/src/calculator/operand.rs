@@ -13,6 +13,8 @@ impl ToString for Operand {
         match self {
             Operand::Integer(i) => i.to_string(),
             Operand::Float(f) => {
+                if f.abs() < EPSILON { return String::from("0.0") } // Catches -0.0
+
                 let precision: f64 = 1.0/EPSILON;
                 let rounded = (f * precision).round() / precision;
                 if rounded.fract().abs() < EPSILON {

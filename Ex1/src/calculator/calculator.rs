@@ -10,17 +10,19 @@ pub struct Calculator {
     registers: HashMap<char, Operand>, // A set of 52 read-only registers named by letters A to Z and a to z, each holding a single integer, floating-point number or string   // NOTE: These are constants (code that exists when switching on the calculator)
 }
 
+// TODO: Index consistency
+
 impl Calculator {
     pub fn new() -> Self {
         let mut registers = HashMap::new();
         for c in 'A'..='Z' {
-            registers.insert(c, Operand::String(String::new()));    // TODO: Empty string with or without ()?
+            registers.insert(c, Operand::String(String::new()));
         }
         for c in 'a'..='z' {
-            registers.insert(c, Operand::String(String::new()));    // TODO: Empty string with or without ()?
+            registers.insert(c, Operand::String(String::new()));
         }
         Calculator { 
-            commands: VecDeque::new(),   // TODO: init with register a
+            commands: VecDeque::new(),
             operation_mode: 0,
             data: Vec::new(),
             registers,
@@ -30,7 +32,7 @@ impl Calculator {
     pub fn turn_on(&mut self) {
         self.data = Vec::new();
         self.operation_mode = 0;
-        // TODO: Initialize some register code
+        // TODO: Initialize some register code (in particular the a register)
         self.commands.extend(self.registers.get(&'a').unwrap().to_string().chars());
 
         self.execute_commands();
@@ -214,7 +216,7 @@ impl Calculator {
                 };
                 self.data.push(result);
             },
-            '!' => {    // Copy
+            '!' => {    // Copy (1-indexed)
                 assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
                 match self.data.last().unwrap() {
                     Operand::Integer(i) => {
@@ -252,7 +254,7 @@ impl Calculator {
                 
                 if let Operand::String(s) = self.data.pop().unwrap() {
                     for c in s.chars().rev() {
-                        self.commands.push_front(c);    // TODO: Check if this is correct, do I need to consider ()? reverse correct?
+                        self.commands.push_front(c);
                     }
                 }
             },
@@ -264,12 +266,12 @@ impl Calculator {
                 
                 if let Operand::String(s) = self.data.pop().unwrap() {
                     for c in s.chars() {
-                        self.commands.push_back(c);    // TODO: Check if this is correct, do I need to consider ()? reverse correct?
+                        self.commands.push_back(c);
                     }
                 }
             },
             '#' => {
-                self.data.push(Operand::Integer(self.commands.len() as i64));
+                self.data.push(Operand::Integer(self.data.len() as i64));
             },
             '\'' => {   // Read input
                 // TODO: Ignore ASCII
@@ -306,7 +308,10 @@ mod functinoality_tests {
         let mut calculator = Calculator::new();
         calculator.commands.extend(input.chars());
         calculator.execute_commands();
-        calculator.data.pop().unwrap().to_string()
+        match calculator.data.pop() {
+            Some(x) => x.to_string(),
+            None => String::from("")
+        }
     }
 
     #[test]
@@ -328,6 +333,16 @@ mod functinoality_tests {
         assert_eq!("Hello World!", execute_input("(Hello World!)"));
         assert_eq!("Un(Bal(anced()", execute_input("(Un(Bal(anced()"));
         assert_eq!("Three!", execute_input("3 (Three!)"));  // Int + String
+    }
+
+    #[test]
+    fn test_negation() {
+        assert_eq!("-1", execute_input("1~"));    // Ints
+        assert_eq!("1", execute_input("1~~"));    // Ints
+        assert_eq!("0", execute_input("0~"));    // Ints
+        assert_eq!("-1.3", execute_input("1.3~"));    // Floats
+        assert_eq!("0.0", execute_input("0.0~"));    // Floats
+        assert_eq!("", execute_input("(Hello)~"));    // Strings
     }
 
     #[test]
@@ -445,5 +460,75 @@ mod functinoality_tests {
         assert_eq!("", execute_input("1 (Hello)%"));  // String + Int
         assert_eq!("", execute_input("(Threes: ) 3.3%"));  // String + Float
         assert_eq!("", execute_input("3.3 (: Threes)%"));  // String + Float
+    }
+
+    #[test]
+    fn test_nullcheck() {
+        assert_eq!("1", execute_input("0_")); // Ints
+        assert_eq!("0", execute_input("1_")); // Ints
+        assert_eq!("0", execute_input("1~_")); // Ints
+        assert_eq!("1", execute_input("0.0_"));   // Floats
+        assert_eq!("1", execute_input("0.000000000000001_"));   // Floats
+        assert_eq!("0", execute_input("0.1_"));   // Floats
+        assert_eq!("1", execute_input("()_")); // Strings
+        assert_eq!("0", execute_input("( )_")); // Strings
+        assert_eq!("0", execute_input("(Hello)_")); // Strings
+    }
+
+    #[test]
+    fn test_int_conversion() {
+        assert_eq!("", execute_input("0?")); // Ints
+        assert_eq!("", execute_input("1?")); // Ints
+        assert_eq!("0", execute_input("0.5?"));   // Floats
+        assert_eq!("-1", execute_input("1.1~?"));   // Floats
+        assert_eq!("", execute_input("()?")); // Strings
+        assert_eq!("", execute_input("(Hello)?")); // Strings
+    }
+
+    #[test]
+    fn test_copy() {
+        assert_eq!("a", execute_input("(a) 1!"));
+        assert_eq!("3", execute_input("(a) 3 0.5 2!"));
+        assert_eq!("0.5", execute_input("(a) 3 0.5 2! 2!"));
+        assert_eq!("6", execute_input("(a) 3 0.5 6!"));
+        assert_eq!("5.3", execute_input("(a) 3 0.5 5.3!"));
+        assert_eq!("a", execute_input("(a) 3 0.5 (a)!"));
+    }
+
+    #[test]
+    fn test_delete() {
+        assert_eq!("", execute_input("(a) 1$"));
+        assert_eq!("a", execute_input("(a) 3 1$"));
+        assert_eq!("3", execute_input("(a) 3 2$"));
+        assert_eq!("a", execute_input("(a) 3 0.5 2$ 2!"));
+        assert_eq!("a", execute_input("(a) 3 0.5 1$ 1$"));
+        assert_eq!("0.5", execute_input("(a) 3 0.5 6$"));
+        assert_eq!("0.5", execute_input("(a) 3 0.5 5.3$"));
+        assert_eq!("0.5", execute_input("(a) 3 0.5 (a)$"));
+    }
+
+    #[test]
+    fn test_apply() {
+        assert_eq!("1", execute_input("(1)@"));
+        assert_eq!("4", execute_input("(1 1)@+2*"));
+        assert_eq!("4", execute_input("(1 1+)@2*"));
+        assert_eq!("1", execute_input("1 1@"));
+        assert_eq!("0.1", execute_input("1 0.1@"));
+    }
+
+    #[test]
+    fn test_apply_later() {
+        assert_eq!("1", execute_input("(1)\\"));
+        assert_eq!("4", execute_input("( 1 1+*)\\2"));
+        assert_eq!("21", execute_input("(1)\\2"));
+        assert_eq!("1", execute_input("1 1\\"));
+        assert_eq!("0.1", execute_input("1 0.1\\"));
+    }
+
+    #[test]
+    fn test_stacksize() {
+        assert_eq!("1", execute_input("1#"));
+        assert_eq!("3", execute_input("1 (a) 3.9#"));
+        assert_eq!("0", execute_input("1 1$#"));
     }
 }
