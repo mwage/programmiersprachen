@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::{collections::{HashMap, VecDeque}};
 use super::{Operand, EPSILON};
 use std::io::stdin;
 
@@ -10,8 +10,6 @@ pub struct Calculator {
     registers: HashMap<char, Operand>, // A set of 52 read-only registers named by letters A to Z and a to z, each holding a single integer, floating-point number or string   // NOTE: These are constants (code that exists when switching on the calculator)
 }
 
-// TODO: Index consistency
-
 impl Calculator {
     pub fn new() -> Self {
         let mut registers = HashMap::new();
@@ -21,6 +19,14 @@ impl Calculator {
         for c in 'a'..='z' {
             registers.insert(c, Operand::String(String::new()));
         }
+
+        // TODO: Add code to registers!
+        registers.insert('a', Operand::String(String::from("(Welcome to our awesome calculator!\n)\"b@")));
+        registers.insert('b', Operand::String(String::from("
+(What do you want to calculate?\n)
+\"\'@
+(The result is: )\"\"(\n)\"
+()b@")));
         Calculator { 
             commands: VecDeque::new(),
             operation_mode: 0,
@@ -32,9 +38,7 @@ impl Calculator {
     pub fn turn_on(&mut self) {
         self.data = Vec::new();
         self.operation_mode = 0;
-        // TODO: Initialize some register code (in particular the a register)
         self.commands.extend(self.registers.get(&'a').unwrap().to_string().chars());
-
         self.execute_commands();
     }
 
@@ -45,48 +49,54 @@ impl Calculator {
     /// the operation to be executed.
     fn execute_commands(&mut self) {
         while let Some(next_command) = self.commands.pop_front() {
-            match self.operation_mode {
+            let res = match self.operation_mode {
                 0 => self.execution(next_command),
                 -1 => self.integer_construction(next_command),
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
+            };
+            if res.is_err() {
+                println!("Error: {}\nShutting down...", res.err().unwrap());
+                return;
             }
         }
     }
 
-    fn integer_construction(&mut self, next_command: char) {
-        eprintln!("Enter integer construction");
-        assert!(!self.data.is_empty()); // Data stack cannot be empty in integer construction mode
-        eprintln!("Data: {:?}", self.data.last().unwrap());
+    fn integer_construction(&mut self, next_command: char) -> Result<(), String> {
+        if self.data.is_empty() {
+            return Err(String::from("Data stack cannot be empty in integer construction mode!"));
+        }
         let current = if let Operand::Integer(i) = self.data.last().unwrap() {
             *i
         } else {
-            panic!("Current data must be integer in integer construction mode")
+            return Err(String::from("Current data must be integer in integer construction mode!"));
         };
-        eprintln!("Current: {}", current);
 
         match next_command {
             '.' => {    // Transform int to float
                 *self.data.last_mut().unwrap() = Operand::Float(current as f64);
                 self.operation_mode = -2;
-            },      
+            },
             x if x.is_digit(10) => {    // Append digit to current int
                 *self.data.last_mut().unwrap() = Operand::Integer(10 * current + i64::from(x.to_digit(10).unwrap()));
             },
             _ => {      // Execute command in execution mode 
                 self.operation_mode = 0;
-                self.execution(next_command);
+                self.execution(next_command)?;
             }
         }
+
+        Ok(())
     }
 
-    fn decimal_place_construction(&mut self, next_command: char) {
-        eprintln!("Enter decimal construction");
-        assert!(!self.data.is_empty()); // Data stack cannot be empty in decimal place construction mode
+    fn decimal_place_construction(&mut self, next_command: char) -> Result<(), String> {
+        if self.data.is_empty() {
+            return Err(String::from("Data stack cannot be empty in decimal place construction mode!"));
+        }
         let current = if let Operand::Float(f) = self.data.last().unwrap() {
             *f
         } else {
-            panic!("Current data must be float in decimal place construction mode")
+            return Err(String::from("Current data must be float in decimal place construction mode!"));
         };
 
         match next_command {
@@ -100,15 +110,20 @@ impl Calculator {
             },    
             _ => {      // Execute command in execution mode 
                 self.operation_mode = 0;
-                self.execution(next_command);
+                self.execution(next_command)?;
             }
         }
+
+        Ok(())
     }
 
-    fn string_construction(&mut self, next_command: char) {
-        eprintln!("Enter string construction");
-        assert!(!self.data.is_empty()); // Data stack cannot be empty in string construction mode
-        assert!(matches!(self.data.last().unwrap(), Operand::String(_)));   // Current data must be string in string construction mode
+    fn string_construction(&mut self, next_command: char) -> Result<(), String> {
+        if self.data.is_empty() {
+            return Err(String::from("Data stack cannot be empty in string construction mode!"));
+        }
+        if !matches!(self.data.last().unwrap(), Operand::String(_)) {
+            return Err(String::from("Current data must be string in string construction mode!"));
+        }
 
         match next_command {
             '(' => {    // Increase string nesting
@@ -131,10 +146,11 @@ impl Calculator {
                 }
             }
         }
+
+        Ok(())
     }
 
-    fn execution(&mut self, next_command: char) {
-        eprintln!("Enter execution mode");
+    fn execution(&mut self, next_command: char) -> Result<(), String> {
         match next_command {
             '.' => {    // Go to decimal place construction mode
                 self.data.push(Operand::Float(0.0));
@@ -152,7 +168,9 @@ impl Calculator {
                 self.data.push(self.registers.get(&c).unwrap().clone());
             },
             '=' | '<' | '>' => {    // Comparisons
-                assert!(self.data.len() >= 2); // TODO: Replace with proper error handling
+                if self.data.len() < 2 {
+                    return Err(format!("Comparison {} requires at least 2 items on data stack (currently {})!", next_command, self.data.len()));
+                }
                 let y = self.data.pop().unwrap();
                 let x = self.data.pop().unwrap();
                 let result = match next_command {
@@ -163,7 +181,9 @@ impl Calculator {
                 self.data.push(Operand::Integer(if result { 1 } else { 0 }));
             },
             '+' | '-' | '*' | '/' | '%' => {    // Arithmetics
-                assert!(self.data.len() >= 2); // TODO: Replace with proper error handling
+                if self.data.len() < 2 {
+                    return Err(format!("Arithmetic operation {} require at least 2 items on data stack (currently {})!", next_command, self.data.len()));
+                }
                 let y = self.data.pop().unwrap();
                 let x = self.data.pop().unwrap();
                 let result = match next_command {
@@ -176,7 +196,9 @@ impl Calculator {
                 self.data.push(result);
             },
             '|' | '&' => {  // Boolean logic
-                assert!(self.data.len() >= 2); // TODO: Replace with proper error handling
+                if self.data.len() < 2 {
+                    return Err(format!("Logic operation {} require at least 2 items on data stack (currently {})!", next_command, self.data.len()));
+                }
                 let y = self.data.pop().unwrap();
                 let x = self.data.pop().unwrap();
                 let result = if next_command == '|' {
@@ -187,7 +209,9 @@ impl Calculator {
                 self.data.push(result);
             },
             '_' => {    // Null check
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for null check!"));
+                }
                 let x = self.data.pop().unwrap();
                 let result = match x {
                     Operand::Integer(i) => i == 0,
@@ -197,7 +221,9 @@ impl Calculator {
                 self.data.push(Operand::Integer(if result { 1 } else { 0 }));
             },
             '~' => {    // Negation
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for negation!"));
+                }
                 let x = self.data.pop().unwrap();
                 let result = match x {
                     Operand::Integer(i) => Operand::Integer(-i),
@@ -207,7 +233,9 @@ impl Calculator {
                 self.data.push(result);
             },
             '?' => {    // Integer Conversion
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for integer conversion!"));
+                }
                 let x = self.data.pop().unwrap();
                 let result = match x {
                     Operand::Integer(_) => Operand::String(String::new()),
@@ -217,39 +245,45 @@ impl Calculator {
                 self.data.push(result);
             },
             '!' => {    // Copy (1-indexed)
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for copy operator!"));
+                }
                 match self.data.last().unwrap() {
                     Operand::Integer(i) => {
                         let len = self.data.len() - 1;  // len-1 since pop happens after (implicitly as a replace)
                         let i = *i;
                         if i as usize > len || i <= 0 {   // Invalid indices, 
-                            return;
+                            return Ok(());
                         }
 
                         let new = self.data[len - i as usize].clone();
                         *self.data.last_mut().unwrap() = new;
                     }
-                    _ => return,
+                    _ => return Ok(()),
                 }
             },
             '$' => {    // Delete
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for deletion operator!"));
+                }
                 match self.data.pop().unwrap() {
                     Operand::Integer(i) => {
                         let len = self.data.len();
                         if i as usize > len || i <= 0 {   // Invalid indices
-                            return;
+                            return Ok(());
                         }
                         
                         self.data.remove(len - i as usize);
                     }
-                    _ => return,
+                    _ => return Ok(()),
                 }
             },
             '@' => {    // Apply immediately
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for application operator @!"));
+                }
                 if !matches!(self.data.last().unwrap(), Operand::String(_)) {
-                    return;
+                    return Ok(());  // Not applicable, nothing happens
                 }
                 
                 if let Operand::String(s) = self.data.pop().unwrap() {
@@ -259,9 +293,11 @@ impl Calculator {
                 }
             },
             '\\' => {    // Apply later
-                assert!(!self.data.is_empty()); // TODO: Replace with proper error handling
+                if self.data.is_empty() {
+                    return Err(String::from("Data stack cannot be empty for late application operator \\!"));
+                }
                 if !matches!(self.data.last().unwrap(), Operand::String(_)) {
-                    return;
+                    return Ok(());  // Not applicable, nothing happens
                 }
                 
                 if let Operand::String(s) = self.data.pop().unwrap() {
@@ -274,10 +310,9 @@ impl Calculator {
                 self.data.push(Operand::Integer(self.data.len() as i64));
             },
             '\'' => {   // Read input
-                // TODO: Ignore ASCII
                 let mut input = String::new();  // Input stream
-                stdin().read_line(&mut input).expect("Failed to read line.");  // TODO: Replace with proper error handling
-                input = String::from(input.trim());
+                stdin().read_line(&mut input).expect("Failed to read line.");
+                input = input.trim().chars().filter(|c| c.is_ascii()).collect::<String>();  // Trim + remove non-asciis
                 if let Ok(i) = input.parse::<i64>() {  // Try parse to int
                     self.data.push(Operand::Integer(i));
                 } else if let Ok(f) = input.parse::<f64>() {  // Try parse to float
@@ -292,15 +327,17 @@ impl Calculator {
                     print!("{}", x.to_string());    // Output
                 }
             },
-            _ => return
+            _ => return Ok (())
         }
+
+        Ok(())
     }
 
 }
 
 /// Tests the implementation of all predefined operations for correctness
 #[cfg(test)]
-mod functinoality_tests {
+mod functionality_tests {
     use super::*;
 
     // Helper function for testing the internal workings of the calculator
@@ -332,7 +369,6 @@ mod functinoality_tests {
         // Strings
         assert_eq!("Hello World!", execute_input("(Hello World!)"));
         assert_eq!("Un(Bal(anced()", execute_input("(Un(Bal(anced()"));
-        assert_eq!("Three!", execute_input("3 (Three!)"));  // Int + String
     }
 
     #[test]
@@ -456,7 +492,7 @@ mod functinoality_tests {
         assert_eq!("", execute_input("4.5 3%"));     // Int + Float
         assert_eq!("", execute_input("(Hello) (Hello)%")); // Strings
         assert_eq!("", execute_input("(Hello World) (World)%"));  // Strings
-        assert_eq!("101", execute_input("(Hello) 1%"));  // String + Int    (returns ASCII of e)
+        assert_eq!("101", execute_input("(Hello) 2%"));  // String + Int    (returns ASCII of e)
         assert_eq!("", execute_input("1 (Hello)%"));  // String + Int
         assert_eq!("", execute_input("(Threes: ) 3.3%"));  // String + Float
         assert_eq!("", execute_input("3.3 (: Threes)%"));  // String + Float

@@ -200,7 +200,7 @@ impl Rem for Operand {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 % r0),
             (Self::String(l0), Self::Integer(r0)) => {  // Get ASCII at int position
-                match l0.chars().nth(r0 as usize) {
+                match l0.chars().nth(r0 as usize - 1) {   // One-index for consistency instead of Rust default 0-index
                     Some(c) => Self::Integer(c as u8 as i64),   // Index found
                     None => Self::String(String::new()) // Index out of range
                 }
