@@ -296,8 +296,9 @@ impl Calculator {
 
 }
 
+/// Tests the implementation of all predefined operations for correctness
 #[cfg(test)]
-mod test {
+mod functinoality_tests {
     use super::*;
 
     // Helper function for testing the internal workings of the calculator
@@ -312,10 +313,12 @@ mod test {
     fn test_construction() {
         // Integers
         assert_eq!("1", execute_input("1"));
+        assert_eq!("42", execute_input("42"));
         assert_eq!("2", execute_input("1 2"));
         assert_eq!("-1", execute_input("1~"));  // Negative numbers
         // Floats
         assert_eq!("0.1", execute_input("0.1"));
+        assert_eq!("10.1", execute_input("10.1"));
         assert_eq!("0.0", execute_input("0.0"));
         assert_eq!("0.1", execute_input("0.10"));   // Avoid unnecessary 0s
         assert_eq!("0.103", execute_input("0.103"));
@@ -384,6 +387,20 @@ mod test {
     }
 
     #[test]
+    fn test_subtraction() {
+        assert_eq!("1", execute_input("3 2-")); // Ints
+        assert_eq!("-0.5", execute_input("3.3 3.8-"));   // Floats
+        assert_eq!("-0.05", execute_input("3 3.05-"));     // Int + Float
+        assert_eq!("0.05", execute_input("3.05 3-"));     // Int + Float
+        assert_eq!("", execute_input("(Hello ) (World!)-")); // Strings
+        assert_eq!("", execute_input("(Hello ) (llo)-")); // Strings
+        assert_eq!("Hel", execute_input("(Hello) 2-"));  // String + Int
+        assert_eq!("lo", execute_input("3 (Hello)-"));  // String + Int
+        assert_eq!("", execute_input("(Hello) 3.0-"));  // String + Float
+        assert_eq!("", execute_input("3.3 (Hello)-"));  // String + Float
+    }
+
+    #[test]
     fn test_multiplication() {
         assert_eq!("42", execute_input("7 6*")); // Ints
         assert_eq!("42.0", execute_input("7.5 5.6*"));   // Floats
@@ -394,5 +411,35 @@ mod test {
         assert_eq!("Hi", execute_input("72 (i)*"));  // String + Int
         assert_eq!("", execute_input("(Threes: ) 3.3*"));  // String + Float
         assert_eq!("", execute_input("3.3 (: Threes)*"));  // String + Float
+    }
+
+    #[test]
+    fn test_division() {
+        assert_eq!("6", execute_input("42 7/")); // Ints
+        assert_eq!("0", execute_input("2 4/")); // Ints
+        assert_eq!("7.5", execute_input("42.0 5.6/"));   // Floats
+        assert_eq!("2.0", execute_input("3 1.5/"));     // Int + Float
+        assert_eq!("1.5", execute_input("4.5 3/"));     // Int + Float
+        assert_eq!("-1", execute_input("(Hello) (World!)/")); // Strings
+        assert_eq!("6", execute_input("(Hello World) (World)/"));  // Strings
+        assert_eq!("", execute_input("(Hello) 1/"));  // String + Int
+        assert_eq!("", execute_input("1 (Hello)/"));  // String + Int
+        assert_eq!("", execute_input("(Threes: ) 3.3/"));  // String + Float
+        assert_eq!("", execute_input("3.3 (: Threes)/"));  // String + Float
+    }
+
+    #[test]
+    fn test_mod() {
+        assert_eq!("0", execute_input("42 7%")); // Ints
+        assert_eq!("2", execute_input("42 8%")); // Ints
+        assert_eq!("", execute_input("42.0 5.6%"));   // Floats
+        assert_eq!("", execute_input("3 1.5%"));     // Int + Float
+        assert_eq!("", execute_input("4.5 3%"));     // Int + Float
+        assert_eq!("", execute_input("(Hello) (Hello)%")); // Strings
+        assert_eq!("", execute_input("(Hello World) (World)%"));  // Strings
+        assert_eq!("101", execute_input("(Hello) 1%"));  // String + Int    (returns ASCII of e)
+        assert_eq!("", execute_input("1 (Hello)%"));  // String + Int
+        assert_eq!("", execute_input("(Threes: ) 3.3%"));  // String + Float
+        assert_eq!("", execute_input("3.3 (: Threes)%"));  // String + Float
     }
 }
