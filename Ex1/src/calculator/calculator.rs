@@ -29,6 +29,8 @@ impl Calculator {
 ()b@")));
         registers.insert('c', Operand::Integer(42));
         registers.insert('d', Operand::String(String::from("(3!3$3!1%3!*2$1 4!-3$2!_(4!@)(3$1$)4!4$1+$@) () 4!4$ 4!@")));
+        registers.insert('e', Operand::String(String::from("(4!1% 2!64>3!91<&3!96>4!123<&| (2!47>3!58<& (2!32= (9!9$9!9$9!9$9!1+9$9!9$9!9$9!9$9!9$) (9!9$9!9$9!1+9$9!9$9!9$9!9$9!9$9!9$) 4!4$1+$@*+()) (9!9$9!1+9$9!9$9!9$9!9$9!9$8!8$9!9$*) 4!4$1+$@) (9!1+9$9!9$9!9$9!9$9!9$9!9$8!8$9!9$*) 4!4$1+$@ 1 5!5$-(4!4$4!4$9!@)(1$3!+2$6$)4!_1+$@) 0 0 0 0 7! () () 9!@")));
+
         Calculator { 
             commands: VecDeque::new(),
             operation_mode: 0,
@@ -337,21 +339,24 @@ impl Calculator {
 
 }
 
+// Helper function for testing the internal workings of the calculator
+pub fn execute_input(input: &str) -> String {
+    let mut calculator = Calculator::new();
+    calculator.commands.extend(input.chars());
+    calculator.execute_commands();
+    match calculator.data.pop() {
+        Some(x) => x.to_string(),
+        None => String::from("")
+    }
+}
+
+
 /// Tests the implementation of all predefined operations for correctness
 #[cfg(test)]
 mod functionality_tests {
     use super::*;
 
-    // Helper function for testing the internal workings of the calculator
-    fn execute_input(input: &str) -> String {
-        let mut calculator = Calculator::new();
-        calculator.commands.extend(input.chars());
-        calculator.execute_commands();
-        match calculator.data.pop() {
-            Some(x) => x.to_string(),
-            None => String::from("")
-        }
-    }
+    
 
     #[test]
     fn test_construction() {
@@ -597,5 +602,10 @@ mod functionality_tests {
         assert_eq!("2ksbt4", execute_input("(4tbsk2)d@"));
         assert_eq!("2ks.bt4", execute_input("(4tb.sk2)d@"));
         assert_eq!("Hello World!", execute_input("(!dlroW olleH)d@"));
+    }
+
+    #[test]
+    fn test_split_word_reversal() {
+        assert_eq!("cba+52 3a/X$", execute_input("(abc+25 a3/X$)e@"));
     }
 }

@@ -5,3 +5,4 @@ pub const EPSILON: f64 = 1e-10;  // Floating point precision (f64 has precision 
 
 pub use calculator::Calculator;
 use operand::Operand;
+pub use calculator::execute_input;
