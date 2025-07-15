@@ -28,6 +28,7 @@ impl Calculator {
 (The result is: )\"\"(\n)\"
 ()b@")));
         registers.insert('c', Operand::Integer(42));
+        registers.insert('d', Operand::String(String::from("(3!3$3!1%3!*2$1 4!-3$2!_(4!@)(3$1$)4!4$1+$@) () 4!4$ 4!@")));
         Calculator { 
             commands: VecDeque::new(),
             operation_mode: 0,
@@ -56,9 +57,9 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
-            // eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
+            println!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
-                println!("Error: {}\nShutting down...", res.err().unwrap());
+                eprintln!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
             }
         }
@@ -588,5 +589,13 @@ mod functionality_tests {
         assert_eq!("6", execute_input("3(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$"));    // 3!
         assert_eq!("24", execute_input("4(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$"));   // 4!
         assert_eq!("3628800", execute_input("10(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$")); // 10!        
+    }
+
+    #[test]
+    fn test_word_reversal() {
+        assert_eq!("cba", execute_input("(abc)d@"));
+        assert_eq!("2ksbt4", execute_input("(4tbsk2)d@"));
+        assert_eq!("2ks.bt4", execute_input("(4tb.sk2)d@"));
+        assert_eq!("Hello World!", execute_input("(!dlroW olleH)d@"));
     }
 }
