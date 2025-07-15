@@ -27,6 +27,7 @@ impl Calculator {
 \"\'@
 (The result is: )\"\"(\n)\"
 ()b@")));
+        registers.insert('c', Operand::Integer(42));
         Calculator { 
             commands: VecDeque::new(),
             operation_mode: 0,
@@ -55,6 +56,7 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
+            // eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
                 println!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
@@ -150,7 +152,7 @@ impl Calculator {
         Ok(())
     }
 
-    fn execution(&mut self, next_command: char) -> Result<(), String> {
+    fn execution(&mut self, next_command: char) -> Result<(), String> {        
         match next_command {
             '.' => {    // Go to decimal place construction mode
                 self.data.push(Operand::Float(0.0));
@@ -244,19 +246,18 @@ impl Calculator {
                 };
                 self.data.push(result);
             },
-            '!' => {    // Copy (1-indexed)
+            '!' => {    // Copy (1-indexed, includes the index itself)
                 if self.data.is_empty() {
                     return Err(String::from("Data stack cannot be empty for copy operator!"));
                 }
                 match self.data.last().unwrap() {
                     Operand::Integer(i) => {
-                        let len = self.data.len() - 1;  // len-1 since pop happens after (implicitly as a replace)
-                        let i = *i;
-                        if i as usize > len || i <= 0 {   // Invalid indices, 
+                        let len = self.data.len();
+                        if *i as usize > len || *i <= 0 {
                             return Ok(());
                         }
 
-                        let new = self.data[len - i as usize].clone();
+                        let new = self.data[len - *i as usize].clone();
                         *self.data.last_mut().unwrap() = new;
                     }
                     _ => return Ok(()),
@@ -523,12 +524,15 @@ mod functionality_tests {
 
     #[test]
     fn test_copy() {
-        assert_eq!("a", execute_input("(a) 1!"));
-        assert_eq!("3", execute_input("(a) 3 0.5 2!"));
-        assert_eq!("0.5", execute_input("(a) 3 0.5 2! 2!"));
-        assert_eq!("6", execute_input("(a) 3 0.5 6!"));
-        assert_eq!("5.3", execute_input("(a) 3 0.5 5.3!"));
-        assert_eq!("a", execute_input("(a) 3 0.5 (a)!"));
+        assert_eq!("1", execute_input("(a) 1!"));
+        assert_eq!("a", execute_input("(a) 2!"));
+        assert_eq!("3", execute_input("(a) 3 0.5 3!"));
+        assert_eq!("0.5", execute_input("(a) 3 0.5 2! 3!"));
+        assert_eq!("3", execute_input("(a) 3!")); // barely out of range
+        assert_eq!("0", execute_input("(a) 0!")); // barely out of range
+        assert_eq!("6", execute_input("(a) 3 0.5 6!")); // out of range
+        assert_eq!("5.3", execute_input("(a) 3 0.5 5.3!")); // float
+        assert_eq!("a", execute_input("(a) 3 0.5 (a)!"));   // string
     }
 
     #[test]
@@ -536,7 +540,7 @@ mod functionality_tests {
         assert_eq!("", execute_input("(a) 1$"));
         assert_eq!("a", execute_input("(a) 3 1$"));
         assert_eq!("3", execute_input("(a) 3 2$"));
-        assert_eq!("a", execute_input("(a) 3 0.5 2$ 2!"));
+        assert_eq!("a", execute_input("(a) 3 0.5 2$ 3!"));
         assert_eq!("a", execute_input("(a) 3 0.5 1$ 1$"));
         assert_eq!("0.5", execute_input("(a) 3 0.5 6$"));
         assert_eq!("0.5", execute_input("(a) 3 0.5 5.3$"));
@@ -566,5 +570,23 @@ mod functionality_tests {
         assert_eq!("1", execute_input("1#"));
         assert_eq!("3", execute_input("1 (a) 3.9#"));
         assert_eq!("0", execute_input("1 1$#"));
+    }
+
+    #[test]
+    fn test_register_access() {
+        assert_eq!("42", execute_input("c@"));
+    }
+
+    #[test]
+    fn test_conditional_example() {
+        assert_eq!("8", execute_input("1(8)(9~)(4!4$_1+$@)@"));
+    }
+
+    #[test]
+    fn test_factorial() {
+        assert_eq!("2", execute_input("2(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$"));    // 2!
+        assert_eq!("6", execute_input("3(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$"));    // 3!
+        assert_eq!("24", execute_input("4(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$"));   // 4!
+        assert_eq!("3628800", execute_input("10(3!3!1-2!1=()5!(4!4$_1+$@)@2$*)3!3$3!@2$")); // 10!        
     }
 }
