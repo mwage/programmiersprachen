@@ -19,18 +19,88 @@ impl Calculator {
         for c in 'a'..='z' {
             registers.insert(c, Operand::String(String::new()));
         }
-
-        // TODO: Add code to registers!
-        registers.insert('a', Operand::String(String::from("(Welcome to our awesome calculator!\n)\"b@")));
+        registers.insert('a', Operand::String(String::from("(Welcome to our awesome calculator!\n)\"b@"))); // Welcome message
         registers.insert('b', Operand::String(String::from("
 (What do you want to calculate?\n)
 \"\'@
-(The result is: )\"\"(\n)\"
-()b@")));
-        registers.insert('c', Operand::Integer(42));
-        registers.insert('d', Operand::String(String::from("(3!3$3!1%3!*2$1 4!-3$2!_(4!@)(3$1$)4!4$1+$@) () 4!4$ 4!@")));
-        registers.insert('e', Operand::String(String::from("(4!1% 2!64>3!91<&3!96>4!123<&| (2!47>3!58<& (2!32= (9!9$9!9$9!9$9!1+9$9!9$9!9$9!9$9!9$) (9!9$9!9$9!1+9$9!9$9!9$9!9$9!9$9!9$) 4!4$1+$@*+()) (9!9$9!1+9$9!9$9!9$9!9$9!9$8!8$9!9$*) 4!4$1+$@) (9!1+9$9!9$9!9$9!9$9!9$9!9$8!8$9!9$*) 4!4$1+$@ 1 5!5$-(4!4$4!4$9!@)(1$3!+2$6$)4!_1+$@) 0 0 0 0 7! () () 9!@")));
+(\n)\"
+()b@")));   // Repeated command prompt
+        registers.insert('c', Operand::Integer(42));    // Constant for testing
+        registers.insert('d', Operand::String(String::from("(3!3$3!1%3!*2$1 4!-3$2!_(4!@)(3$1$)4!4$1+$@) () 4!4$ 4!@")));   // Reversal of an input string
+        
+        let mut program = String::new();
+// begin loop code (code for loop is pushed on data stack)
+    // stack contents: full input string, loop code, 5x counters, input string, result buffer, word buffer
+    // begin if input string not empty
+        // copy input to front, get first letter
+        program += "((4!1% ";
+        // stack contents: full input string, loop code, 5x counters, input string, result buffer, word buffer, first letter
+        // if letter condition: (x>64 & x<91) | (x>96 & x<123)
+        program += "2!64>3!91<&3!96>4!123<&| ";
+        // begin if letter false
+            // if digit condition: x>47 & x<58
+        program += "(2!47>3!58<& ";
+            // begin if digit false
+                // if whitespace condition: x=32
+        program += "(2!32= ";
+                // begin if whitespace false (special char)
+                    // increment special char counter
+        program += "(10!10$10!10$10!10$10!10$10!1+10$10!10$10!10$10!10$10!10$) ";
+                // end if whitespace false
+                // begin if whitespace true
+                    //increment whitespace counter
+        program += "(10!10$10!10$10!10$10!1+10$10!10$10!10$10!10$10!10$10!10$) ";
+                // end if whitespace true
+                // take if whitespace bool from data stack, add 1, delete wrong path from stack (1$ if not whitespace, 2$ if whitespace), execute remaining code path
+        program += "4!4$1+$@ ";
+                // add first letter to back of word buffer, add word buffer with first letter to result buffer, push new empty word buffer
+        program += "*+()) ";
+            // end if digit false
+            // begin if digit true
+                // analogous to (if letter true): update word count if word buffer empty, increment digit counter, append first letter to front of word buffer
+        program += "(10! 4!_+ 10$10!10$10!1+10$10!10$10!10$10!10$10!10$9!9$10!10$*) ";
+            // end if digit true
+            // take if digit bool from data stack, add 1, delete wrong path from stack (1$ if not digit, 2$ if digit), execute remaining code path
+        program += "4!4$1+$@) ";
+        // end if letter false
+        // begin if letter true
+            // update word count: if word buffer empty add 1 to word count, otherwise add 0, old word count deleted
+        program += "(10! 4!_+ 10$ ";
+            // update letter count: add 1, delete old letter count
+        program += "10!1+10$ ";
+            // copy and delete remaining 3x counters, input string, result buffer, first letter, word buffer
+            // and append first letter to the front of word buffer (append to front for word reversal)
+        program += "10!10$10!10$10!10$10!10$10!10$9!9$10!10$*) ";
+        // end if letter true
+        // take if letter bool from data stack, add 1, delete wrong path from stack (1$ if not letter, 2$ if letter), execute remaining code path
+        program += "4!4$1+$@ ";
+        // move input string to top of data stack and delete first letter
+        program += "1 5!5$-";
+        // stack contents: full input string, loop code, 5x counters, result buffer, word buffer, updated input string
+        // bring result and word buffer to front, bring loop code to front and execute
+        program += "4!4$4!4$10!@) ";
+        // stack contents: full input string, loop code, 5x counters, input string, result buffer, word buffer
+    // end if input string not empty
+    // begin if input string empty
+        // add word buffer to result buffer, delete input string and loop code
+        program += "(+2$7$) ";
+    // end if input string empty
+    // if input string empty condition: bring input string to front, check if empty, add 1, delete wrong path from stack (1$ if not empty, 2$ if empty), execute remaining code path
+        program += "6!_1+$@) ";
+// end loop code
+        // initialize counters: word count, letter count, digit count, whitespace count, special characters count
+        program += "0 0 0 0 0 ";
+        // copy input string from first position
+        program += "8! ";
+        // init result buffer, word buffer
+        program += "() () ";
+        // get loop code from data stack and execute
+        program += "10!@ ";
+        // Cleanup + output
+        program += "7$(Reversed words: )\"\"(\nNumber of special characters: )4!(\nNumber of white-spaces: )7!(\nNumber of digits: )10!(\nNumber of letters: )13!(\nNumber of words: )\"\"\"\"\"\"\"\"\"\"(\n)\"1$1$1$1$ "; 
 
+        registers.insert('e', Operand::String(program));    // Reversal of all words in an input string according to the specification, including word counts
+                    
         Calculator { 
             commands: VecDeque::new(),
             operation_mode: 0,
@@ -59,7 +129,7 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
-            println!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
+            eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
                 eprintln!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
