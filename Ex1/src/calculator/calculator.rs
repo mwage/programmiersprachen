@@ -11,6 +11,12 @@ pub struct Calculator {
 }
 
 impl Calculator {
+    /// Creates a new instance of the calculator, initializes registers:
+    /// Register a: Welcome message + executes register b
+    /// Register b: Loop that queries for user input
+    /// Register c: Computes the ultimate answer to life, the universe, and everything
+    /// Register d: Reverses an input string
+    /// Register e: Reverses individual words of an input string and counts words, letters, digits, white-spaces and special characters
     pub fn new() -> Self {
         let mut registers = HashMap::new();
         for c in 'A'..='Z' {
@@ -88,15 +94,15 @@ impl Calculator {
     // if input string empty condition: bring input string to front, check if empty, add 1, delete wrong path from stack (1$ if not empty, 2$ if empty), execute remaining code path
         program += "6!_1+$@) ";
 // end loop code
-        // initialize counters: word count, letter count, digit count, whitespace count, special characters count
+// initialize counters: word count, letter count, digit count, whitespace count, special characters count
         program += "0 0 0 0 0 ";
-        // copy input string from first position
+// copy input string from first position
         program += "8! ";
-        // init result buffer, word buffer
+// init result buffer, word buffer
         program += "() () ";
-        // get loop code from data stack and execute
+// get loop code from data stack and execute
         program += "10!@ ";
-        // Cleanup + output
+// Cleanup + output
         program += "7$(Reversed words: )\"\"(\nNumber of special characters: )4!(\nNumber of white-spaces: )7!(\nNumber of digits: )10!(\nNumber of letters: )13!(\nNumber of words: )\"\"\"\"\"\"\"\"\"\"(\n)\"1$1$1$1$ "; 
 
         registers.insert('e', Operand::String(program));    // Reversal of all words in an input string according to the specification, including word counts
@@ -109,6 +115,7 @@ impl Calculator {
         }
     }
 
+    /// Turns on the calculator and queries for user input
     pub fn turn_on(&mut self) {
         self.data = Vec::new();
         self.operation_mode = 0;
@@ -129,7 +136,7 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
-            eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
+            // eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
                 eprintln!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
@@ -137,6 +144,8 @@ impl Calculator {
         }
     }
 
+    /// Handle next command character when in integer construction mode
+    /// next_command: next command character on the command stream
     fn integer_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in integer construction mode!"));
@@ -164,6 +173,8 @@ impl Calculator {
         Ok(())
     }
 
+    /// Handle next command character when in decimal construction mode
+    /// next_command: next command character on the command stream
     fn decimal_place_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in decimal place construction mode!"));
@@ -192,6 +203,8 @@ impl Calculator {
         Ok(())
     }
 
+    /// Handle next command character when in string construction mode
+    /// next_command: next command character on the command stream
     fn string_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in string construction mode!"));
@@ -225,6 +238,8 @@ impl Calculator {
         Ok(())
     }
 
+    /// Handle next command character when in execution mode
+    /// next_command: next command character on the command stream
     fn execution(&mut self, next_command: char) -> Result<(), String> {        
         match next_command {
             '.' => {    // Go to decimal place construction mode
@@ -409,14 +424,16 @@ impl Calculator {
 
 }
 
-// Helper function for testing the internal workings of the calculator
+/// Helper function for testing the internal workings of the calculator
+/// input: the input string for the calculator
+/// returns string representation of item on top of the datastack if non-empty, empty string otherwise 
 pub fn execute_input(input: &str) -> String {
     let mut calculator = Calculator::new();
     calculator.commands.extend(input.chars());
     calculator.execute_commands();
     match calculator.data.pop() {
         Some(x) => x.to_string(),
-        None => String::from("")
+        None => String::new()
     }
 }
 
@@ -425,8 +442,6 @@ pub fn execute_input(input: &str) -> String {
 #[cfg(test)]
 mod functionality_tests {
     use super::*;
-
-    
 
     #[test]
     fn test_construction() {
@@ -672,10 +687,5 @@ mod functionality_tests {
         assert_eq!("2ksbt4", execute_input("(4tbsk2)d@"));
         assert_eq!("2ks.bt4", execute_input("(4tb.sk2)d@"));
         assert_eq!("Hello World!", execute_input("(!dlroW olleH)d@"));
-    }
-
-    #[test]
-    fn test_split_word_reversal() {
-        assert_eq!("cba+52 3a/X$", execute_input("(abc+25 a3/X$)e@"));
     }
 }

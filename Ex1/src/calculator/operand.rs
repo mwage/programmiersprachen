@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, ops::*};
 use super::EPSILON;
 
+/// The available datatypes of the calculator (Integers, Floats and Strings)
 #[derive(Clone, Debug)]
 pub enum Operand {
     Integer(i64),
@@ -9,6 +10,7 @@ pub enum Operand {
 }
 
 impl ToString for Operand {
+    /// Returns the string representation of the different datatypes of the calculator
     fn to_string(&self) -> String {
         match self {
             Operand::Integer(i) => i.to_string(),
@@ -29,6 +31,7 @@ impl ToString for Operand {
 }
 
 impl PartialEq for Operand {
+    /// Returns whether two operates are equal to each other according to specification
     fn eq(&self, other: &Self) -> bool {    
         match (self, other) {
             (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
@@ -57,9 +60,12 @@ impl PartialEq for Operand {
     }
 }
 
+/// Automatically derives inequality
 impl Eq for Operand {}
 
+/// Implements the ordering for each of the datatypes according to the specification
 impl PartialOrd for Operand {
+    /// Returns if the other value is Less, Equal or Greater than the value
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (Self::Integer(l0), Self::Integer(r0)) => Some(l0.cmp(r0)),
@@ -85,15 +91,19 @@ impl PartialOrd for Operand {
     }
 }
 
+/// Ordering is defined for all datatypes and all values => we have a total ordering and can just rely on the PartialOrd implementation
 impl Ord for Operand {
+    /// Returns if the other value is Less, Equal or Greater than the value
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
        self.partial_cmp(other).unwrap()
     }
 }
 
+/// Implements addition for each of the datatypes according to the specification
 impl Add for Operand {
     type Output = Self;
-    
+        
+    /// Returns the sum of the two values
     fn add(self, rhs: Self) -> Self {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 + r0),
@@ -107,10 +117,11 @@ impl Add for Operand {
     }
 }
 
-
+/// Implements subtraction for each of the datatypes according to the specification
 impl Sub for Operand {
     type Output = Self;
 
+    /// Returns self minus the the second value (rhs)
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 - r0),
@@ -136,9 +147,11 @@ impl Sub for Operand {
     }
 }
 
+/// Implements multiplication for each of the datatypes according to the specification
 impl Mul for Operand {
     type Output = Self;
 
+    /// Returns the product of the two values
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 * r0),
@@ -165,9 +178,11 @@ impl Mul for Operand {
     }
 }
 
+/// Implements division for each of the datatypes according to the specification
 impl Div for Operand {
     type Output = Self;
 
+    /// Returns self divided by the other value (rhs)
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => {
@@ -193,9 +208,11 @@ impl Div for Operand {
     }
 }
 
+/// Implements the remainder operation for each of the datatypes according to the specification
 impl Rem for Operand {
     type Output = Self;
 
+    /// Returns the remainder of self divided by the other value (rhs)
     fn rem(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => Self::Integer(l0 % r0),
@@ -210,9 +227,11 @@ impl Rem for Operand {
     }
 }
 
+/// Implements bitwise And for each of the datatypes according to the specification
 impl BitAnd for Operand {
     type Output = Self;
 
+    /// Returns the bitwise and between self and the other value (rhs)
     fn bitand(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => {
@@ -223,9 +242,11 @@ impl BitAnd for Operand {
     }
 }
 
+/// Implements bitwise Or for each of the datatypes according to the specification
 impl BitOr for Operand {
     type Output = Self;
 
+    /// Returns the bitwise and between self and the other value (rhs)
     fn bitor(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(l0), Self::Integer(r0)) => {

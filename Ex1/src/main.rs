@@ -1,12 +1,12 @@
 mod calculator;
 
 use calculator::Calculator;
-use calculator::execute_input;
+// use calculator::execute_input;
 
-
-// TODO: move execute input again into testing, clean up, comment how the algs work
 fn main() {
-    execute_input("(a&3 ds)e@");
-    // let mut calculator = Calculator::new();
-    // calculator.turn_on();
+    // Creates a new instance of the calculator and turns it on
+    let mut calculator = Calculator::new();
+    calculator.turn_on();
+
+    // execute_input("(a&3 ds)e@");
 }
