@@ -200,7 +200,6 @@ class Apply:
 
     # Still cannot be evaluated
     def apply(self, input, context):
-        self.rcontext = context # TODO: Check if this line is correct!
         return Apply(self, input, context)
     
     # Update on left side and try apply.

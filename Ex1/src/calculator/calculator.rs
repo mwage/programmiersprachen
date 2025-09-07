@@ -142,7 +142,7 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
-            eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
+            // eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
                 eprintln!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
