@@ -31,16 +31,16 @@ impl Calculator {
         for c in 'a'..='z' {
             registers.insert(c, Operand::String(String::new()));
         }
-        registers.insert('a', Operand::String(String::from("(Welcome to our awesome calculator!\n)\"b@"))); // Welcome message
-        registers.insert('b', Operand::String(String::from("
-(What do you want to calculate?\n)
-\"\'@
-(\n)\"
-()b@")));   // Repeated command prompt
+        registers.insert('a', Operand::String(String::from("(Welcome to our awesome calculator!\n)\"b@"))); // Output welcome message and enter 
+        let mut program = String::new();
+        program += "(What do you want to calculate?\n)\"";    // Output query message
+        program += "\'@";           // Wait for input and execute it
+        program += "(\n)\"b@";      // Afterwards output a new line and repeat asking for new input 
+        registers.insert('b', Operand::String(program));   // Repeated command prompt
         registers.insert('c', Operand::Integer(42));    // Constant for testing
         registers.insert('d', Operand::String(String::from("(3!3$3!1%3!*2$1 4!-3$2!_(4!@)(3$1$)4!4$1+$@) () 4!4$ 4!@")));   // Reversal of an input string
         
-        let mut program = String::new();
+        program = String::new();
 // begin loop code (code for loop is pushed on data stack)
     // stack contents: full input string, loop code, 5x counters, input string, result buffer, word buffer
     // begin if input string not empty
@@ -142,7 +142,7 @@ impl Calculator {
                 m if m < -1 => self.decimal_place_construction(next_command),
                 _ => self.string_construction(next_command)
             };
-            // eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
+            eprintln!("{:?} - {}", self.data, self.commands.iter().collect::<String>());
             if res.is_err() {
                 eprintln!("Error: {}\nShutting down...", res.err().unwrap());
                 return;
