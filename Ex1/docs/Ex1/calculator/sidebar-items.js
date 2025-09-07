@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["EPSILON"],"mod":["calculator","operand"]};

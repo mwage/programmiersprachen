@@ -3,11 +3,17 @@ use super::{Operand, EPSILON};
 use std::io::stdin;
 
 
+/// A programmable calculator according to the specification in <https://github.com/mwage/programmiersprachen/blob/master/aufgabe1.pdf>.
 pub struct Calculator {
-    commands: VecDeque<char>, // A stream of characters regarded as commands to be executed in sequential order.
-    operation_mode: i8, // An integer used in controlling the interpretation of commands
-    data: Vec<Operand>, // This is the stack holding integers, floating-point numbers and strings when evaluating expressions in post-fix notation.
-    registers: HashMap<char, Operand>, // A set of 52 read-only registers named by letters A to Z and a to z, each holding a single integer, floating-point number or string   // NOTE: These are constants (code that exists when switching on the calculator)
+    /// A stream of characters regarded as commands to be executed in sequential order.
+    commands: VecDeque<char>, 
+    /// An integer used in controlling the interpretation of commands
+    operation_mode: i8, 
+    /// A stack holding integers, floating-point numbers and strings when evaluating expressions in post-fix notation.
+    data: Vec<Operand>, 
+    /// A set of 52 read-only registers named by letters A to Z and a to z, each holding a single integer, floating-point number or string.
+    /// These are constants (code that exists when switching on the calculator)
+    registers: HashMap<char, Operand>, 
 }
 
 impl Calculator {
@@ -145,7 +151,10 @@ impl Calculator {
     }
 
     /// Handle next command character when in integer construction mode
-    /// next_command: next command character on the command stream
+    /// 
+    /// # Arguments
+    /// 
+    /// * `next_command` Next command character on the command stream
     fn integer_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in integer construction mode!"));
@@ -174,7 +183,10 @@ impl Calculator {
     }
 
     /// Handle next command character when in decimal construction mode
-    /// next_command: next command character on the command stream
+    /// 
+    /// # Arguments
+    /// 
+    /// * `next_command` Next command character on the command stream
     fn decimal_place_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in decimal place construction mode!"));
@@ -203,8 +215,11 @@ impl Calculator {
         Ok(())
     }
 
-    /// Handle next command character when in string construction mode
-    /// next_command: next command character on the command stream
+    /// Handle next command character when in string construction mode/// Handle next command character when in integer construction mode
+    /// 
+    /// # Arguments
+    /// 
+    /// * `next_command` Next command character on the command stream
     fn string_construction(&mut self, next_command: char) -> Result<(), String> {
         if self.data.is_empty() {
             return Err(String::from("Data stack cannot be empty in string construction mode!"));
@@ -239,7 +254,10 @@ impl Calculator {
     }
 
     /// Handle next command character when in execution mode
-    /// next_command: next command character on the command stream
+    /// 
+    /// # Arguments
+    /// 
+    /// * `next_command` Next command character on the command stream
     fn execution(&mut self, next_command: char) -> Result<(), String> {        
         match next_command {
             '.' => {    // Go to decimal place construction mode
@@ -425,8 +443,14 @@ impl Calculator {
 }
 
 /// Helper function for testing the internal workings of the calculator
-/// input: the input string for the calculator
-/// returns string representation of item on top of the datastack if non-empty, empty string otherwise 
+/// 
+/// # Arguments
+/// 
+/// * `input` The input string for the calculator
+/// 
+/// # Returns
+/// 
+/// String representation of item on top of the datastack if non-empty, empty string otherwise 
 pub fn execute_input(input: &str) -> String {
     let mut calculator = Calculator::new();
     calculator.commands.extend(input.chars());
