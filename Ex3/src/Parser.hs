@@ -53,11 +53,6 @@ fromPos p = Span p (p & posCol %~ (+ 1)) [] []
 contains :: Span -> Pos -> Bool
 contains (Span s e _ _) p = s <= p && p < e
 
-getParens :: Span -> Pos -> Maybe (Pos, Pos)
-getParens s p
-  | not $ s `contains` p = Nothing
-  | otherwise = find (\(o, c) -> p == o || p == c) (s ^. spanParens)
-
 data Expr m
   = Lambda {_exprMeta :: m, _lambdaParam :: Text, _lambdaExpr :: Expr m}
   | App {_exprMeta :: m, _appArgs :: [Expr m]}
@@ -69,9 +64,6 @@ data Expr m
 makeLenses ''Expr
 
 type LocExpr = Expr Span
-
-posInExpr :: Pos -> LocExpr -> Bool
-posInExpr p e = (e ^. exprMeta) `contains` p
 
 newtype Context = Context {_ctxDecls :: Map Text Span} deriving (Show, Eq)
 makeLenses ''Context
@@ -170,11 +162,6 @@ annotations expr pos = evalState (go expr >> use stAnnos) $ AnnotationState pos 
         filterNames lvls'
         f lvls' ses'
 
-parenAnnotation :: Pos -> Span -> [(Span, Annotation)]
-parenAnnotation p s = (\x -> (fromPos x, HighlightedParen)) <$> mp ^.. (_Just . both)
- where
-  mp = find (\(x, y) -> p == x || p == y) $ s ^. spanParens
-
 getPos :: (TraversableStream s, MonadParsec e s m) => m Pos
 getPos = getSourcePos <&> \(SourcePos _ l c) -> Pos (unPos l) (unPos c)
 
@@ -197,9 +184,6 @@ sc = L.space space1 empty empty
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
-
-symbol :: Text -> Parser Text
-symbol = L.symbol sc
 
 paren :: Parser LocExpr -> Parser LocExpr
 paren p = do
@@ -289,9 +273,6 @@ expression =
 
 parseExpr :: FilePath -> Text -> Either (ParseErrorBundle Text Void) LocExpr
 parseExpr = parse (space *> expression <* eof)
-
-parseExprPretty :: FilePath -> Text -> Either String LocExpr
-parseExprPretty f i = parse (space *> expression <* eof) f i & _Left %~ errorBundlePretty
 
 toExpr :: LocExpr -> Expr ()
 toExpr (Lambda _ n e) = Lambda () n $ toExpr e

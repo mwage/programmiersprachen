@@ -13,7 +13,6 @@ module Cursor (
   moveCursorColRel,
   moveCursorRowRel,
   Span (..),
-  currentChar,
   insertChar,
   deleteChar,
   insertLB,
@@ -49,9 +48,6 @@ initCursor t = Cursor [] (T.lines $ T.replace "\r" "" $ T.replace "\t" "  " t) (
 
 toText :: SimpleGetter Cursor Text
 toText = to (\(Cursor{_prev, _next}) -> T.unlines $ reverse _prev ++ _next)
-
-currentChar :: Cursor -> Maybe Char
-currentChar = preview $ next . _head . _head
 
 insertChar :: Char -> Cursor -> Cursor
 insertChar c (Cursor p [] cpos) = Cursor p [T.singleton c] (cpos & _2 %~ (+ 1))

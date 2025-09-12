@@ -17,6 +17,7 @@ import Brick (
   AttrName,
   BrickEvent (VtyEvent),
   EventM,
+  Location (Location),
   Widget,
   attrMap,
   attrName,
@@ -45,11 +46,11 @@ import Text.Megaparsec (
  )
 import Text.Megaparsec.Pos (unPos)
 
-import Cursor (Cursor, Span (..))
+import Cursor (Cursor, Span (..), pos)
 import Cursor qualified as C
 import Parser qualified as P
 
-data EditMode = Normal | Insert | Command
+data EditMode = Normal | Insert | Command deriving (Show, Eq)
 
 data AppState = AppState {_filename :: String, _editMode :: EditMode, _editBuffer :: Cursor, _commandContent :: Text}
 makeLenses ''AppState
@@ -67,8 +68,9 @@ appDraw s = case s ^. editMode of
   Insert -> [fc (Nothing, [])]
   Command -> [commandBox (s ^. commandContent), fc marks]
  where
-  fc (err, hs) = (<=> fromMaybe emptyWidget err) $ viewport FileContent Both $ C.render FileCursor hs $ s ^. editBuffer
+  fc (err, hs) = vBox [viewport FileContent Both $ C.render FileCursor hs $ s ^. editBuffer, fromMaybe emptyWidget err, statusLine]
   minCmdSize = 10
+  statusLine = hBox [str $ show (s ^. editMode) ++ " " ++ show (s ^. (editBuffer . pos))]
   toHs :: (P.Span, P.Annotation) -> (Span, AttrName)
   toHs (sp, a) =
     ( Span
@@ -88,7 +90,7 @@ appDraw s = case s ^. editMode of
          in ( Just $ border $ padRight Max $ str $ errorBundlePretty e
             , [(Span errLine errCol errLine (errCol + 1), attrName "parseError")]
             )
-  commandBox cmd = hCenterLayer $ padTop (Pad 1) $ border $ padRight (Pad $ max (minCmdSize - T.length cmd) 0) $ txt $ T.cons ':' cmd
+  commandBox cmd = hCenterLayer $ translateBy (Location (0, 1)) $ border $ padRight (Pad $ max (minCmdSize - T.length cmd) 0) $ txt $ T.cons ':' cmd
 
 appHandleEvent :: BrickEvent ResourceName () -> EventM ResourceName AppState ()
 appHandleEvent (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt
@@ -115,6 +117,7 @@ handleEventCommand :: BrickEvent ResourceName () -> EventM ResourceName AppState
 handleEventCommand (VtyEvent (EvKey KEnter [])) = handleEditorCommand
 handleEventCommand (VtyEvent (EvKey KBS [])) = commandContent %= T.dropEnd 1
 handleEventCommand (VtyEvent (EvKey (KChar c) [])) = commandContent %= (`T.snoc` c)
+handleEventCommand (VtyEvent (EvKey KEsc [])) = editMode .= Normal
 handleEventCommand _ = return ()
 
 handleEditorCommand :: EventM ResourceName AppState ()
