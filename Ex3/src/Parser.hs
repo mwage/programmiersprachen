@@ -13,12 +13,11 @@ import Data.Void (Void)
 
 import Control.Monad (when)
 import Control.Monad.State.Strict (State, evalState)
-import Data.Foldable (find)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as M
 import Data.Maybe (fromMaybe)
 import Lens.Micro.Platform
-import Text.Megaparsec (MonadParsec (..), ParseErrorBundle, Parsec, SourcePos (..), TraversableStream, errorBundlePretty, getSourcePos, parse, satisfy, unPos, (<?>))
+import Text.Megaparsec (MonadParsec (..), ParseErrorBundle, Parsec, SourcePos (..), TraversableStream, getSourcePos, parse, satisfy, unPos, (<?>))
 import Text.Megaparsec.Char (char, digitChar, space, space1)
 import Text.Megaparsec.Char.Lexer qualified as L
 import Text.Megaparsec.Stream (Token)
@@ -78,6 +77,9 @@ data AnnotationState = AnnotationState
   deriving (Show)
 makeLenses ''AnnotationState
 
+builtins :: [Text]
+builtins = ["plus", "minus", "mult", "div", "cond"]
+
 checkHighlight :: Text -> Span -> State AnnotationState ()
 checkHighlight n s = do
   p <- use stPos
@@ -128,8 +130,9 @@ recordDefs :: LocExpr -> [Text]
 recordDefs e = e ^.. (recFields . each . _1)
 
 annotations :: LocExpr -> Pos -> [(Span, Annotation)]
-annotations expr pos = evalState (go expr >> use stAnnos) $ AnnotationState pos M.empty Nothing []
+annotations expr pos = evalState (go expr >> use stAnnos) $ AnnotationState pos initialNames Nothing []
  where
+  initialNames = M.fromList $ (,M.singleton 1 []) <$> builtins
   go :: LocExpr -> State AnnotationState () -- [(Span, Annotation)]
   go e =
     highlightParens e >> case e of
